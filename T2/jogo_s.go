@@ -13,6 +13,11 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+func connect() {
+	// Conectar ao servidor
+	//cria um objeto jogador( ID , ELEMENT )
+}
+
 // Define os elementos do jogo
 type Elemento struct {
 	simbolo  rune
@@ -20,11 +25,34 @@ type Elemento struct {
 	corFundo termbox.Attribute
 	tangivel bool
 }
+type Jogador struct {
+	ID      int
+	Element Elemento
+	TX      int
+	RX      int
+	jogador.posX    int
+	jogador.posY    int
+	Online  bool
+}
+type Servidor struct {
+	Jogadores [3]Jogador
+}
 
-// Personagem controlado pelo jogador
-var personagem = Elemento{
+var personagem_1 = Elemento{
 	simbolo:  '☺',
-	cor:      termbox.ColorBlack,
+	cor:      termbox.ColorRed,
+	corFundo: termbox.ColorDefault,
+	tangivel: true,
+}
+var personagem_2 = Elemento{
+	simbolo:  '☺',
+	cor:      termbox.ColorGreen,
+	corFundo: termbox.ColorDefault,
+	tangivel: true,
+}
+var personagem_3 = Elemento{
+	simbolo:  '☺',
+	cor:      termbox.ColorBlue,
 	corFundo: termbox.ColorDefault,
 	tangivel: true,
 }
@@ -69,26 +97,34 @@ var neblina = Elemento{
 	tangivel: false,
 }
 
+// Servidor recebe (comando, jogador.posX, jogador.posY, elem, lastElem) e chama a função updatePos
+
 var mapa [][]Elemento
-var posX, posY int
 var ultimoElementoSobPersonagem = vazio
-var lastElement_1 = vazio
-var lastElement_2 = vazio
-var lastElement_3 = vazio
 var statusMsg string
 
 var efeitoNeblina = false
 var revelado [][]bool
 var raioVisao int = 3
 
-func main() {
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
-
+func inicializar(s *Servidor) {
+	// Inicializa o mapa
 	carregarMapa("mapa.txt")
+	// Inicializa os jogadores
+	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, TX: 0, RX: 0, jogador.posX: -1, jogador.posY: -1, Online: false}
+	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, TX: 0, RX: 0, jogador.posX: -1, jogador.posY: -1, Online: false}
+	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, TX: 0, RX: 0, jogador.posX: -1, jogador.posY: -1, Online: false}
+}
+func (s *Servidor) ListenInput(j Jogador) { //TODO
+
+}
+
+func (s *Servidor) updateMap() { //TODO
+
+}
+
+func main() {
+
 }
 
 func carregarMapa(nomeArquivo string) {
@@ -113,10 +149,10 @@ func carregarMapa(nomeArquivo string) {
 				elementoAtual = barreira
 			case vegetacao.simbolo:
 				elementoAtual = vegetacao
-			case personagem.simbolo:
-				// Atualiza a posição inicial do personagem
-				posX, posY = x, y
-				elementoAtual = vazio
+				// case personagem.simbolo:
+				// 	// Atualiza a posição inicial do personagem
+				// 	jogador.posX, jogador.posY = x, y
+				// 	elementoAtual = vazio
 			}
 			linhaElementos = append(linhaElementos, elementoAtual)
 			linhaRevelada = append(linhaRevelada, false)
@@ -129,37 +165,17 @@ func carregarMapa(nomeArquivo string) {
 		panic(err)
 	}
 }
-func updatePos(novaPosX int, novaPosY int, elem Elemento) { // Cliente chama essa função para atualizar a posição do elemento
+
+func updatePos(novaPosX int, novaPosY int, elem Elemento, jogador Jogador) { // Cliente chama essa função para atualizar a posição do elemento
 
 	if novaPosY >= 0 && novaPosY < len(mapa) && novaPosX >= 0 && novaPosX < len(mapa[novaPosY]) && mapa[novaPosY][novaPosX].tangivel == false {
-		mapa[posY][posX] = lastElement_1         // Restaura o elemento anterior
-		lastElement_1 = mapa[novaPosY][novaPosX] // Atualiza o elemento
-		posX, posY = novaPosX, novaPosY          // Move o elemento
-		mapa[posY][posX] = elem                  // Coloca o elemento na nova posição
-	}
-}
-func mover(comando rune) {
-	dx, dy := 0, 0
-	switch comando {
-	case 'w':
-		dy = -1
-	case 'a':
-		dx = -1
-	case 's':
-		dy = 1
-	case 'd':
-		dx = 1
-	}
-	novaPosX, novaPosY := posX+dx, posY+dy
-	if novaPosY >= 0 && novaPosY < len(mapa) && novaPosX >= 0 && novaPosX < len(mapa[novaPosY]) &&
-		mapa[novaPosY][novaPosX].tangivel == false {
-		mapa[posY][posX] = ultimoElementoSobPersonagem         // Restaura o elemento anterior
-		ultimoElementoSobPersonagem = mapa[novaPosY][novaPosX] // Atualiza o elemento sob o personagem
-		posX, posY = novaPosX, novaPosY                        // Move o personagem
-		mapa[posY][posX] = personagem                          // Coloca o personagem na nova posição
+		mapa[jogador.posY][jogador.posX] = ultimoElementoSobPersonagem        	// Restaura o elemento anterior
+		ultimoElementoSobPersonagem = mapa[novaPosY][novaPosX] 					// Atualiza o elemento sob o personagem
+		jogador.posX, jogador.posY = novaPosX, novaPosY                        	// Move o personagem
+		mapa[jogador.posY][jogador.posX] = jogador.Element                      // Coloca o personagem na nova posição
 	}
 }
 
-func interagir() {
-	statusMsg = fmt.Sprintf("Interagindo em (%d, %d)", posX, posY)
+func interagir() { // TODO
+	statusMsg = fmt.Sprintf("Interagindo em (%d, %d)", jogador.posX, jogador.posY)
 }

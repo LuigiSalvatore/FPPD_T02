@@ -30,12 +30,20 @@ type Jogador struct {
 	Element Elemento
 	TX      int
 	RX      int
-	jogador.posX    int
-	jogador.posY    int
+	posX    int
+	posY    int
 	Online  bool
 }
 type Servidor struct {
-	Jogadores [3]Jogador
+	Jogadores 					[3]Jogador
+	mapa 						[][]Elemento
+	ultimoElementoSobPersonagem Elemento
+	statusMsg 					string
+	efeitoNeblina  				bool
+	revelado 					[][]bool
+	raioVisao 					int 
+	mapa_Inicializado 			bool
+
 }
 
 var personagem_1 = Elemento{
@@ -56,7 +64,6 @@ var personagem_3 = Elemento{
 	corFundo: termbox.ColorDefault,
 	tangivel: true,
 }
-
 // Parede
 var parede = Elemento{
 	simbolo:  '▤',
@@ -99,27 +106,37 @@ var neblina = Elemento{
 
 // Servidor recebe (comando, jogador.posX, jogador.posY, elem, lastElem) e chama a função updatePos
 
-var mapa [][]Elemento
-var ultimoElementoSobPersonagem = vazio
-var statusMsg string
-
-var efeitoNeblina = false
-var revelado [][]bool
-var raioVisao int = 3
+// var mapa [][]Elemento
+// var ultimoElementoSobPersonagem = vazio
+// var statusMsg string
+// var efeitoNeblina = false
+// var revelado [][]bool
+// var raioVisao int = 3
 
 func inicializar(s *Servidor) {
+	ultimoElementoSobPersonagem = vazio
+	efeitoNeblina = false
+	raioVisao = 3
+	mapa_Inicializado = false
 	// Inicializa o mapa
 	carregarMapa("mapa.txt")
 	// Inicializa os jogadores
-	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, TX: 0, RX: 0, jogador.posX: -1, jogador.posY: -1, Online: false}
-	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, TX: 0, RX: 0, jogador.posX: -1, jogador.posY: -1, Online: false}
-	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, TX: 0, RX: 0, jogador.posX: -1, jogador.posY: -1, Online: false}
+	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, TX: 0, RX: 0, posX: -1, posY: -1, Online: false}
+	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, TX: 0, RX: 0, posX: -1, posY: -1, Online: false}
+	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, TX: 0, RX: 0, posX: -1, posY: -1, Online: false}
 }
-func (s *Servidor) ListenInput(j Jogador) { //TODO
+func (s *Servidor) sendMapa(clientMap *[][]Elemento) { // cliente manda seu mapa, servidor Carrega o mapa
+	if(mapa_Inicializado){
+		*clientMap = mapa
+		return nil
+	}
+	return fmt.Errorf("Mapa ainda não Inicializado")
+}
+func (s *Servidor) listenInput(j Jogador) { //TODO
 
 }
 
-func (s *Servidor) updateMap() { //TODO
+func (s *Servidor) updateMap(j Jogador) { //TODO
 
 }
 
@@ -149,10 +166,6 @@ func carregarMapa(nomeArquivo string) {
 				elementoAtual = barreira
 			case vegetacao.simbolo:
 				elementoAtual = vegetacao
-				// case personagem.simbolo:
-				// 	// Atualiza a posição inicial do personagem
-				// 	jogador.posX, jogador.posY = x, y
-				// 	elementoAtual = vazio
 			}
 			linhaElementos = append(linhaElementos, elementoAtual)
 			linhaRevelada = append(linhaRevelada, false)
@@ -164,15 +177,16 @@ func carregarMapa(nomeArquivo string) {
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
+	mapa_Inicializado = true
 }
 
-func updatePos(novaPosX int, novaPosY int, elem Elemento, jogador Jogador) { // Cliente chama essa função para atualizar a posição do elemento
+func updatePos(novaPosX int, novaPosY int, elem Elemento, j Jogador) { // Cliente chama essa função para atualizar a posição do elemento
 
 	if novaPosY >= 0 && novaPosY < len(mapa) && novaPosX >= 0 && novaPosX < len(mapa[novaPosY]) && mapa[novaPosY][novaPosX].tangivel == false {
-		mapa[jogador.posY][jogador.posX] = ultimoElementoSobPersonagem        	// Restaura o elemento anterior
+		mapa[j.posY][j.posX] = ultimoElementoSobPersonagem        	// Restaura o elemento anterior
 		ultimoElementoSobPersonagem = mapa[novaPosY][novaPosX] 					// Atualiza o elemento sob o personagem
-		jogador.posX, jogador.posY = novaPosX, novaPosY                        	// Move o personagem
-		mapa[jogador.posY][jogador.posX] = jogador.Element                      // Coloca o personagem na nova posição
+		j.posX, j.posY = novaPosX, novaPosY                        	// Move o personagem
+		mapa[j.posY][j.posX] = j.Element                      // Coloca o personagem na nova posição
 	}
 }
 

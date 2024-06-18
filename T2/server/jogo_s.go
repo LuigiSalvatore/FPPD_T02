@@ -25,10 +25,10 @@ func connect() {
 
 // Define os elementos do jogo
 type Elemento struct {
-	simbolo  rune
-	cor      termbox.Attribute
-	corFundo termbox.Attribute
-	tangivel bool
+	Simbolo  rune
+	Cor      termbox.Attribute
+	CorFundo termbox.Attribute
+	Tangivel bool
 }
 type Jogador struct {
 	ID      int
@@ -49,62 +49,62 @@ type Servidor struct {
 }
 
 var personagem_1 = Elemento{
-	simbolo:  '☺',
-	cor:      termbox.ColorRed,
-	corFundo: termbox.ColorDefault,
-	tangivel: true,
+	Simbolo:  '☺',
+	Cor:      termbox.ColorRed,
+	CorFundo: termbox.ColorDefault,
+	Tangivel: true,
 }
 var personagem_2 = Elemento{
-	simbolo:  '☺',
-	cor:      termbox.ColorGreen,
-	corFundo: termbox.ColorDefault,
-	tangivel: true,
+	Simbolo:  '☺',
+	Cor:      termbox.ColorGreen,
+	CorFundo: termbox.ColorDefault,
+	Tangivel: true,
 }
 var personagem_3 = Elemento{
-	simbolo:  '☺',
-	cor:      termbox.ColorBlue,
-	corFundo: termbox.ColorDefault,
-	tangivel: true,
+	Simbolo:  '☺',
+	Cor:      termbox.ColorBlue,
+	CorFundo: termbox.ColorDefault,
+	Tangivel: true,
 }
 
 // Parede
 var parede = Elemento{
-	simbolo:  '▤',
-	cor:      termbox.ColorBlack | termbox.AttrBold | termbox.AttrDim,
-	corFundo: termbox.ColorDarkGray,
-	tangivel: true,
+	Simbolo:  '▤',
+	Cor:      termbox.ColorBlack | termbox.AttrBold | termbox.AttrDim,
+	CorFundo: termbox.ColorDarkGray,
+	Tangivel: true,
 }
 
 // Barrreira
 var barreira = Elemento{
-	simbolo:  '#',
-	cor:      termbox.ColorRed,
-	corFundo: termbox.ColorDefault,
-	tangivel: true,
+	Simbolo:  '#',
+	Cor:      termbox.ColorRed,
+	CorFundo: termbox.ColorDefault,
+	Tangivel: true,
 }
 
 // Vegetação
 var vegetacao = Elemento{
-	simbolo:  '♣',
-	cor:      termbox.ColorGreen,
-	corFundo: termbox.ColorDefault,
-	tangivel: false,
+	Simbolo:  '♣',
+	Cor:      termbox.ColorGreen,
+	CorFundo: termbox.ColorDefault,
+	Tangivel: false,
 }
 
 // Elemento vazio
 var vazio = Elemento{
-	simbolo:  ' ',
-	cor:      termbox.ColorDefault,
-	corFundo: termbox.ColorDefault,
-	tangivel: false,
+	Simbolo:  ' ',
+	Cor:      termbox.ColorDefault,
+	CorFundo: termbox.ColorDefault,
+	Tangivel: false,
 }
 
 // Elemento para representar áreas não reveladas (efeito de neblina)
 var neblina = Elemento{
-	simbolo:  '.',
-	cor:      termbox.ColorDefault,
-	corFundo: termbox.ColorYellow,
-	tangivel: false,
+	Simbolo:  '.',
+	Cor:      termbox.ColorDefault,
+	CorFundo: termbox.ColorYellow,
+	Tangivel: false,
 }
 
 // Servidor recebe (comando, jogador.posX, jogador.posY, elem, lastElem) e chama a função updatePos
@@ -128,13 +128,13 @@ func (s *Servidor) inicializar() {
 	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, posX: -1, posY: -1, Online: false}
 	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, posX: -1, posY: -1, Online: false}
 }
-func (s *Servidor) sendMapa(trash string, clientMap *[][]Elemento) error { // cliente manda seu mapa, servidor Carrega o mapa
+func (s *Servidor) SendMapa(id string, clientMap *[][]Elemento) error { // cliente manda seu mapa, servidor Carrega o mapa
 	if s.mapa_Inicializado {
 		*clientMap = s.mapa
+		fmt.Println("Mapa enviado para", id)
 		return nil
 	}
 	return fmt.Errorf("Mapa ainda não Inicializado")
-
 }
 
 func (s *Servidor) listenInput(ev string, j *Jogador) { /*TODO*/
@@ -172,8 +172,14 @@ func main() {
 	porta := 8973
 	servidor := new(Servidor)
 	servidor.inicializar()
-
+	if servidor.mapa == nil || len(servidor.mapa) == 0 {
+		fmt.Println("Mapa não inicializado")
+		return
+	} else {
+		fmt.Println("Mapa inicializado")
+	}
 	rpc.Register(servidor)
+	
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", porta))
 	if err != nil {
 		fmt.Println("Erro ao iniciar o servidor:", err)
@@ -186,6 +192,8 @@ func main() {
 		if err != nil {
 			fmt.Println("Erro ao aceitar conexão:", err)
 			continue
+		} else {
+			fmt.Println("Conexão aceita:", conn.RemoteAddr())
 		}
 		go rpc.ServeConn(conn)
 	}
@@ -207,11 +215,11 @@ func (s *Servidor) carregarMapa(nomeArquivo string) {
 		for x, char := range linhaTexto {
 			elementoAtual := vazio
 			switch char {
-			case parede.simbolo:
+			case parede.Simbolo:
 				elementoAtual = parede
-			case barreira.simbolo:
+			case barreira.Simbolo:
 				elementoAtual = barreira
-			case vegetacao.simbolo:
+			case vegetacao.Simbolo:
 				elementoAtual = vegetacao
 			}
 			if x == x {
@@ -229,7 +237,7 @@ func (s *Servidor) carregarMapa(nomeArquivo string) {
 
 func (s *Servidor) updatePos(novaPosX int, novaPosY int, elem Elemento, j Jogador) { // Cliente chama essa função para atualizar a posição do elemento
 	mutex.Lock()
-	if novaPosY >= 0 && novaPosY < len(s.mapa) && novaPosX >= 0 && novaPosX < len(s.mapa[novaPosY]) && s.mapa[novaPosY][novaPosX].tangivel == false {
+	if novaPosY >= 0 && novaPosY < len(s.mapa) && novaPosX >= 0 && novaPosX < len(s.mapa[novaPosY]) && s.mapa[novaPosY][novaPosX].Tangivel == false {
 		s.mapa[j.posY][j.posX] = s.ultimoElementoSobPersonagem     // Restaura o elemento anterior
 		s.ultimoElementoSobPersonagem = s.mapa[novaPosY][novaPosX] // Atualiza o elemento sob o personagem
 		j.posX, j.posY = novaPosX, novaPosY                        // Move o personagem

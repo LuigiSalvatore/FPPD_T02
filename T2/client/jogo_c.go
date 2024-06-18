@@ -50,10 +50,16 @@ func desenhaBarraDeStatus() {
 	}
 }
 func main() {
-
+	err := termbox.Init()
+    if err != nil {
+        panic(err)
+    }
+    defer termbox.Close()
+	
 	if len(os.Args) != 2 {
 		fmt.Println("Uso:", os.Args[0], " <maquina>")
-		return
+	} else {
+		fmt.Println("Conectando a", os.Args[1])
 	}
 
 	porta := 8973
@@ -64,14 +70,13 @@ func main() {
 		fmt.Println("Erro ao conectar ao servidor:", err)
 		return
 	}
-	var idk int
-	err = client.Call("Servidor.sendMapa", idk, &mapa)
-
+	err = client.Call("Servidor.SendMapa", maquina, &mapa)
+	if err != nil || len(mapa) == 0 {
+		fmt.Println("Erro ao obter mapa:", err)
+		return
+	}
 	player := new(Jogador)
-
-	//if mapa foi carregado
 	desenhaTudo()
-
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
@@ -84,7 +89,7 @@ func main() {
 				err = client.Call("Servidor.listenInput", ev.Ch, &player)
 
 			}
-			err = client.Call("Servidor.sendMapa", idk, &mapa)
+			err = client.Call("Servidor.SendMapa", maquina, &mapa)
 			desenhaTudo()
 		}
 	}

@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
-	"sync"
 
 	"github.com/nsf/termbox-go"
 )
-
-var mutex sync.Mutex
 
 type Elemento struct {
 	Simbolo  rune
@@ -86,6 +83,7 @@ var neblina = Elemento{
 
 var mapa [][]Elemento
 var statusMsg string
+var player Jogador
 
 func desenhaTudo() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -134,13 +132,18 @@ func main() {
 		fmt.Println("Erro ao obter mapa:", err)
 		return
 	}
-	player := new(Jogador)
 	err = client.Call("Servidor.GetPlayer", maquina, &player)
 	if err != nil {
 		fmt.Println("Erro ao obter jogador:", err)
 		return
-
 	}
+	// else {
+	// 	err = client.Call("Servidor.AckPlayer", maquina, &player)
+	// 	if err != nil {
+	// 		fmt.Println("Erro ao enviar jogador:", err)
+	// 		return
+	// 	}
+	// }
 	desenhaTudo()
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {

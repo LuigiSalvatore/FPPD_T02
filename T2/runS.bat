@@ -1,0 +1,1 @@
+cmd /k jogo_s.exe

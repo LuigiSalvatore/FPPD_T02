@@ -18,11 +18,6 @@ import (
 
 var mutex sync.Mutex
 
-func connect() {
-	// Conectar ao servidor
-	//cria um objeto jogador( ID , ELEMENT )
-}
-
 // Define os elementos do jogo
 type Elemento struct {
 	Simbolo  rune
@@ -121,12 +116,12 @@ func (s *Servidor) inicializar() {
 	s.efeitoNeblina = false
 	s.raioVisao = 3
 	s.mapa_Inicializado = false
+	// Inicializa os jogadores
+	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, posX: 10, posY: 3, Online: false}
+	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, posX: 11, posY: 3, Online: false}
+	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, posX: 12, posY: 3, Online: false}
 	// Inicializa o mapa
 	s.carregarMapa("mapa.txt")
-	// Inicializa os jogadores
-	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, posX: -1, posY: -1, Online: false}
-	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, posX: -1, posY: -1, Online: false}
-	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, posX: -1, posY: -1, Online: false}
 }
 func (s *Servidor) SendMapa(id string, clientMap *[][]Elemento) error { // cliente manda seu mapa, servidor Carrega o mapa
 	if s.mapa_Inicializado {
@@ -137,32 +132,38 @@ func (s *Servidor) SendMapa(id string, clientMap *[][]Elemento) error { // clien
 	return fmt.Errorf("Mapa ainda não Inicializado")
 }
 
-func (s *Servidor) listenInput(ev string, j *Jogador) { /*TODO*/
-	switch ev {
+func (s *Servidor) ListenInput(ev int, j *Jogador) error { /*TODO*/
+	fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
+	ev_str := string(ev)
+	switch ev_str {
 	case "w":
-		s.updatePos(j.posX, j.posY-1, j.Element, *j)
+		s.updatePos(j.posX, j.posY-1, j.Element, j)
 	case "a":
-		s.updatePos(j.posX-1, j.posY, j.Element, *j)
+		s.updatePos(j.posX-1, j.posY, j.Element, j)
 	case "s":
-		s.updatePos(j.posX, j.posY+1, j.Element, *j)
+		s.updatePos(j.posX, j.posY+1, j.Element, j)
 	case "d":
-		s.updatePos(j.posX+1, j.posY, j.Element, *j)
+		s.updatePos(j.posX+1, j.posY, j.Element, j)
+	case "e":
+		s.interact(ev, j)
 	}
+	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY)
+	return nil
+
 }
 
-func (s *Servidor) interact(ev string, j *Jogador) { /*idk what TODO*/
-
+func (s *Servidor) interact(ev int, j *Jogador) { /*idk what TODO*/
+	fmt.Println("Interagindo com", ev, "na posição", j.posX, j.posY)
 }
 
 // func (s *Servidor) updateMap(trash string, j *Jogador) { /*TODO*/ }
-func (s *Servidor) getPlayer(trash string, j *Jogador) error { /*DONE*/
+func (s *Servidor) GetPlayer(trash string, j *Jogador) error { /*DONE*/
 	for i := 0; i < 3; i++ {
 		if !s.Jogadores[i].Online {
 			s.Jogadores[i].Online = true
-			s.Jogadores[i].posX = 10 + i
-			s.Jogadores[i].posY = 3
 
 			*j = s.Jogadores[i]
+			fmt.Println("Jogador", i, "conectado")
 			return nil
 		}
 	}
@@ -179,7 +180,7 @@ func main() {
 		fmt.Println("Mapa inicializado")
 	}
 	rpc.Register(servidor)
-	
+
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", porta))
 	if err != nil {
 		fmt.Println("Erro ao iniciar o servidor:", err)
@@ -222,26 +223,29 @@ func (s *Servidor) carregarMapa(nomeArquivo string) {
 			case vegetacao.Simbolo:
 				elementoAtual = vegetacao
 			}
-			if x == x {
-				linhaElementos = append(linhaElementos, elementoAtual)
-			}
+			linhaElementos = append(linhaElementos, elementoAtual)
+			x++
 		}
 		s.mapa = append(s.mapa, linhaElementos)
 		y++
 	}
+	// Coloca o personagem na posição inicial
+	s.mapa[s.Jogadores[0].posY][s.Jogadores[0].posX] = s.Jogadores[0].Element
+	s.mapa[s.Jogadores[1].posY][s.Jogadores[1].posX] = s.Jogadores[1].Element
+	s.mapa[s.Jogadores[2].posY][s.Jogadores[2].posX] = s.Jogadores[2].Element
+
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
 	s.mapa_Inicializado = true
 }
 
-func (s *Servidor) updatePos(novaPosX int, novaPosY int, elem Elemento, j Jogador) { // Cliente chama essa função para atualizar a posição do elemento
-	mutex.Lock()
+func (s *Servidor) updatePos(novaPosX int, novaPosY int, elem Elemento, j *Jogador) { // Cliente chama essa função para atualizar a posição do elemento
 	if novaPosY >= 0 && novaPosY < len(s.mapa) && novaPosX >= 0 && novaPosX < len(s.mapa[novaPosY]) && s.mapa[novaPosY][novaPosX].Tangivel == false {
 		s.mapa[j.posY][j.posX] = s.ultimoElementoSobPersonagem     // Restaura o elemento anterior
 		s.ultimoElementoSobPersonagem = s.mapa[novaPosY][novaPosX] // Atualiza o elemento sob o personagem
 		j.posX, j.posY = novaPosX, novaPosY                        // Move o personagem
 		s.mapa[j.posY][j.posX] = j.Element                         // Coloca o personagem na nova posição
 	}
-	mutex.Unlock()
+	fmt.Println("Tentei mover para", novaPosX, novaPosY)
 }

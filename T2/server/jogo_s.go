@@ -135,6 +135,8 @@ func (s *Servidor) SendMapa(id string, clientMap *[][]Elemento) error { // clien
 func (s *Servidor) ListenInput(ev rune, j *Jogador) error { /*TODO*/
 	// fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
 	// ev_str := string(ev)
+	fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
+	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY)
 	switch ev {
 	case 'w':
 		s.updatePos(j.posX, j.posY-1, j.Element, j)
@@ -161,13 +163,28 @@ func (s *Servidor) GetPlayer(trash string, j *Jogador) error { /*DONE*/
 	for i := 0; i < 3; i++ {
 		if !s.Jogadores[i].Online {
 			s.Jogadores[i].Online = true
-
 			*j = s.Jogadores[i]
 			fmt.Println("Jogador", i, "conectado")
+			fmt.Println("Enviado:", s.Jogadores[i].ID, s.Jogadores[i].posX, s.Jogadores[i].posY, s.Jogadores[i].Element.Simbolo, s.Jogadores[i].Element.Cor, s.Jogadores[i].Element.CorFundo, s.Jogadores[i].Element.Tangivel)
+			fmt.Println("Copiado: Jogador", j.ID, "posX:", j.posX, "posY:", j.posY, "Elemento:", j.Element.Simbolo, j.Element.Cor, j.Element.CorFundo, j.Element.Tangivel)
 			return nil
 		}
 	}
 	return fmt.Errorf("Não há mais jogadores disponíveis")
+}
+
+func (s *Servidor) AckPlayer(trash string, j *Jogador) error {
+	fmt.Println("Confirmando jogador", j.ID)
+	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY, "Elemento:", j.Element.Simbolo, j.Element.Cor, j.Element.CorFundo, j.Element.Tangivel)
+	for i := 0; i < 3; i++ {
+		fmt.Println("Comparando", s.Jogadores[i].ID, j.ID, s.Jogadores[i].posX, j.posX, s.Jogadores[i].posY, j.posY)
+		if s.Jogadores[i].ID == j.ID && s.Jogadores[i].posX == j.posX && s.Jogadores[i].posY == j.posY {
+			fmt.Println("Jogador", i, "confirmado")
+			return nil
+		}
+	}
+	fmt.Println("Jogador não encontrado")
+	return fmt.Errorf("Jogador não encontrado")
 }
 func main() {
 	porta := 8973

@@ -132,19 +132,19 @@ func (s *Servidor) SendMapa(id string, clientMap *[][]Elemento) error { // clien
 	return fmt.Errorf("Mapa ainda não Inicializado")
 }
 
-func (s *Servidor) ListenInput(ev int, j *Jogador) error { /*TODO*/
-	fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
-	ev_str := string(ev)
-	switch ev_str {
-	case "w":
+func (s *Servidor) ListenInput(ev rune, j *Jogador) error { /*TODO*/
+	// fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
+	// ev_str := string(ev)
+	switch ev {
+	case 'w':
 		s.updatePos(j.posX, j.posY-1, j.Element, j)
-	case "a":
+	case 'a':
 		s.updatePos(j.posX-1, j.posY, j.Element, j)
-	case "s":
+	case 's':
 		s.updatePos(j.posX, j.posY+1, j.Element, j)
-	case "d":
+	case 'd':
 		s.updatePos(j.posX+1, j.posY, j.Element, j)
-	case "e":
+	case 'e':
 		s.interact(ev, j)
 	}
 	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY)
@@ -152,7 +152,7 @@ func (s *Servidor) ListenInput(ev int, j *Jogador) error { /*TODO*/
 
 }
 
-func (s *Servidor) interact(ev int, j *Jogador) { /*idk what TODO*/
+func (s *Servidor) interact(ev rune, j *Jogador) { /*idk what TODO*/
 	fmt.Println("Interagindo com", ev, "na posição", j.posX, j.posY)
 }
 

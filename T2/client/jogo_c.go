@@ -135,6 +135,12 @@ func main() {
 		return
 	}
 	player := new(Jogador)
+	err = client.Call("Servidor.GetPlayer", maquina, &player)
+	if err != nil {
+		fmt.Println("Erro ao obter jogador:", err)
+		return
+
+	}
 	desenhaTudo()
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {

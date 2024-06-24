@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
@@ -17,8 +18,8 @@ type Elemento struct {
 type Jogador struct {
 	ID      int
 	Element Elemento
-	posX    int
-	posY    int
+	PosX    int
+	PosY    int
 	Online  bool
 }
 
@@ -121,6 +122,7 @@ func main() {
 
 	porta := 8973
 	maquina := os.Args[1]
+	var id int
 
 	client, err := rpc.Dial("tcp", fmt.Sprintf("%s:%d", maquina, porta))
 	if err != nil {
@@ -132,19 +134,24 @@ func main() {
 		fmt.Println("Erro ao obter mapa:", err)
 		return
 	}
-	err = client.Call("Servidor.GetPlayer", maquina, &player)
+	err = client.Call("Servidor.GetID", maquina, &id)
 	if err != nil {
-		fmt.Println("Erro ao obter jogador:", err)
+		fmt.Println("Erro ao obter ID:", err)
 		return
 	}
-	// else {
+	fmt.Println("ID:", id)
+	// err = client.Call("Servidor.GetPlayer", maquina, &player)
+	// if err != nil {
+	// 	fmt.Println("Erro ao obter jogador:", err)
+	// 	return
+	// } else {
 	// 	err = client.Call("Servidor.AckPlayer", maquina, &player)
 	// 	if err != nil {
 	// 		fmt.Println("Erro ao enviar jogador:", err)
 	// 		return
 	// 	}
 	// }
-	desenhaTudo()
+	go pega_e_desenha_tudo_do_mapa_porra(client, maquina)
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
@@ -152,7 +159,7 @@ func main() {
 				return // Sair do programa
 			}
 			if ev.Ch == 'w' || ev.Ch == 'a' || ev.Ch == 's' || ev.Ch == 'd' || ev.Ch == 'e' {
-				err = client.Call("Servidor.ListenInput", ev.Ch, &player)
+				err = client.Call("Servidor.ListenInput", ev.Ch, &id)
 				if err != nil {
 					fmt.Println("Erro ao enviar comando:", err)
 				}
@@ -161,7 +168,17 @@ func main() {
 			if err != nil {
 				fmt.Println("Erro ao obter mapa:", err)
 			}
-			desenhaTudo()
 		}
+	}
+}
+func pega_e_desenha_tudo_do_mapa_porra(client *rpc.Client, maquina string) {
+	for {
+		err := client.Call("Servidor.SendMapa", maquina, &mapa)
+		if err != nil {
+			fmt.Println("Erro ao obter mapa:", err)
+		}
+		desenhaTudo()
+		time.Sleep(100 * time.Millisecond)
+
 	}
 }

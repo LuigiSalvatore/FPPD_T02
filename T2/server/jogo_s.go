@@ -11,12 +11,9 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-	"sync"
 
 	"github.com/nsf/termbox-go"
 )
-
-var mutex sync.Mutex
 
 // Define os elementos do jogo
 type Elemento struct {
@@ -28,8 +25,8 @@ type Elemento struct {
 type Jogador struct {
 	ID      int
 	Element Elemento
-	posX    int
-	posY    int
+	PosX    int
+	PosY    int
 	Online  bool
 }
 type Servidor struct {
@@ -102,7 +99,7 @@ var neblina = Elemento{
 	Tangivel: false,
 }
 
-// Servidor recebe (comando, jogador.posX, jogador.posY, elem, lastElem) e chama a função updatePos
+// Servidor recebe (comando, jogador.PosX, jogador.PosY, elem, lastElem) e chama a função updatePos
 
 // var mapa [][]Elemento
 // var ultimoElementoSobPersonagem = vazio
@@ -110,6 +107,7 @@ var neblina = Elemento{
 // var efeitoNeblina = false
 // var revelado [][]bool
 // var raioVisao int = 3
+var meuCu int = 0
 
 func (s *Servidor) inicializar() {
 	s.ultimoElementoSobPersonagem = vazio
@@ -117,68 +115,71 @@ func (s *Servidor) inicializar() {
 	s.raioVisao = 3
 	s.mapa_Inicializado = false
 	// Inicializa os jogadores
-	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, posX: 10, posY: 3, Online: false}
-	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, posX: 11, posY: 3, Online: false}
-	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, posX: 12, posY: 3, Online: false}
+	s.Jogadores[0] = Jogador{ID: 0, Element: personagem_1, PosX: 10, PosY: 3, Online: false}
+	s.Jogadores[1] = Jogador{ID: 1, Element: personagem_2, PosX: 11, PosY: 3, Online: false}
+	s.Jogadores[2] = Jogador{ID: 2, Element: personagem_3, PosX: 12, PosY: 3, Online: false}
 	// Inicializa o mapa
 	s.carregarMapa("mapa.txt")
 }
 func (s *Servidor) SendMapa(id string, clientMap *[][]Elemento) error { // cliente manda seu mapa, servidor Carrega o mapa
 	if s.mapa_Inicializado {
 		*clientMap = s.mapa
-		fmt.Println("Mapa enviado para", id)
+		// fmt.Println("Mapa enviado para", id)
 		return nil
 	}
 	return fmt.Errorf("Mapa ainda não Inicializado")
 }
 
-func (s *Servidor) ListenInput(ev rune, j *Jogador) error { /*TODO*/
-	// fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
-	// ev_str := string(ev)
-	fmt.Println("Jogador", j.ID, "recebeu", ev, "ev =", string(ev))
-	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY)
-	switch ev {
-	case 'w':
-		s.updatePos(j.posX, j.posY-1, j.Element, j)
-	case 'a':
-		s.updatePos(j.posX-1, j.posY, j.Element, j)
-	case 's':
-		s.updatePos(j.posX, j.posY+1, j.Element, j)
-	case 'd':
-		s.updatePos(j.posX+1, j.posY, j.Element, j)
-	case 'e':
-		s.interact(ev, j)
-	}
-	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY)
-	return nil
+func (s *Servidor) ListenInput(ev rune, id_c *int) error { /*TODO*/
+	if *id_c >= 0 || *id_c < 2 {
 
-}
-
-func (s *Servidor) interact(ev rune, j *Jogador) { /*idk what TODO*/
-	fmt.Println("Interagindo com", ev, "na posição", j.posX, j.posY)
-}
-
-// func (s *Servidor) updateMap(trash string, j *Jogador) { /*TODO*/ }
-func (s *Servidor) GetPlayer(trash string, j *Jogador) error { /*DONE*/
-	for i := 0; i < 3; i++ {
-		if !s.Jogadores[i].Online {
-			s.Jogadores[i].Online = true
-			*j = s.Jogadores[i]
-			fmt.Println("Jogador", i, "conectado")
-			fmt.Println("Enviado:", s.Jogadores[i].ID, s.Jogadores[i].posX, s.Jogadores[i].posY, s.Jogadores[i].Element.Simbolo, s.Jogadores[i].Element.Cor, s.Jogadores[i].Element.CorFundo, s.Jogadores[i].Element.Tangivel)
-			fmt.Println("Copiado: Jogador", j.ID, "posX:", j.posX, "posY:", j.posY, "Elemento:", j.Element.Simbolo, j.Element.Cor, j.Element.CorFundo, j.Element.Tangivel)
-			return nil
+		fmt.Println("Jogador", s.Jogadores[*id_c].ID, "recebeu", ev, "ev =", string(ev))
+		fmt.Println("Jogador", s.Jogadores[*id_c].ID, "PosX:", s.Jogadores[*id_c].PosX, "PosY:", s.Jogadores[*id_c].PosY)
+		switch ev {
+		case 'w':
+			go s.updatePos(s.Jogadores[*id_c].PosX, s.Jogadores[*id_c].PosY-1, s.Jogadores[*id_c].Element, &s.Jogadores[*id_c])
+		case 'a':
+			go s.updatePos(s.Jogadores[*id_c].PosX-1, s.Jogadores[*id_c].PosY, s.Jogadores[*id_c].Element, &s.Jogadores[*id_c])
+		case 's':
+			go s.updatePos(s.Jogadores[*id_c].PosX, s.Jogadores[*id_c].PosY+1, s.Jogadores[*id_c].Element, &s.Jogadores[*id_c])
+		case 'd':
+			go s.updatePos(s.Jogadores[*id_c].PosX+1, s.Jogadores[*id_c].PosY, s.Jogadores[*id_c].Element, &s.Jogadores[*id_c])
+		case 'e':
+			go s.interact(ev, *id_c)
 		}
+		fmt.Println("Jogador", s.Jogadores[*id_c].ID, "PosX:", s.Jogadores[*id_c].PosX, "PosY:", s.Jogadores[*id_c].PosY)
+		return nil
 	}
-	return fmt.Errorf("Não há mais jogadores disponíveis")
+	return fmt.Errorf("Jogador não encontrado")
+}
+
+func (s *Servidor) interact(ev rune, id_c int) { /*idk what TODO*/
+	fmt.Println("Interagindo com", ev)
+}
+func (s *Servidor) GetID(trash string, id *int) error { /*DONE*/
+
+	id = &meuCu
+	meuCu++
+	// for i := 0; i < 3; i++ {
+	// 	if !s.Jogadores[i].Online {
+	// 		s.Jogadores[i].Online = true
+	// 		*id = s.Jogadores[i].ID
+	// 		fmt.Println("Jogador", i, "conectado")
+	// 		fmt.Println("Enviado:", s.Jogadores[i].ID, s.Jogadores[i].PosX, s.Jogadores[i].PosY, s.Jogadores[i].Element.Simbolo, s.Jogadores[i].Element.Cor, s.Jogadores[i].Element.CorFundo, s.Jogadores[i].Element.Tangivel)
+	// 		fmt.Println("Copiado: Jogador", *id, "PosX:", s.Jogadores[i].PosX, "PosY:", s.Jogadores[i].PosY, "Elemento:", s.Jogadores[i].Element.Simbolo, s.Jogadores[i].Element.Cor, s.Jogadores[i].Element.CorFundo, s.Jogadores[i].Element.Tangivel)
+	// 		return nil
+	// 	}
+	// }
+	// return fmt.Errorf("Não há mais jogadores disponíveis")
+	return nil
 }
 
 func (s *Servidor) AckPlayer(trash string, j *Jogador) error {
 	fmt.Println("Confirmando jogador", j.ID)
-	fmt.Println("Jogador", j.ID, "posX:", j.posX, "posY:", j.posY, "Elemento:", j.Element.Simbolo, j.Element.Cor, j.Element.CorFundo, j.Element.Tangivel)
+	fmt.Println("Jogador", j.ID, "PosX:", j.PosX, "PosY:", j.PosY, "Elemento:", j.Element.Simbolo, j.Element.Cor, j.Element.CorFundo, j.Element.Tangivel)
 	for i := 0; i < 3; i++ {
-		fmt.Println("Comparando", s.Jogadores[i].ID, j.ID, s.Jogadores[i].posX, j.posX, s.Jogadores[i].posY, j.posY)
-		if s.Jogadores[i].ID == j.ID && s.Jogadores[i].posX == j.posX && s.Jogadores[i].posY == j.posY {
+		fmt.Println("Comparando", s.Jogadores[i].ID, j.ID, s.Jogadores[i].PosX, j.PosX, s.Jogadores[i].PosY, j.PosY)
+		if s.Jogadores[i].ID == j.ID && s.Jogadores[i].PosX == j.PosX && s.Jogadores[i].PosY == j.PosY {
 			fmt.Println("Jogador", i, "confirmado")
 			return nil
 		}
@@ -246,10 +247,10 @@ func (s *Servidor) carregarMapa(nomeArquivo string) {
 		s.mapa = append(s.mapa, linhaElementos)
 		y++
 	}
-	// Coloca o personagem na posição inicial
-	s.mapa[s.Jogadores[0].posY][s.Jogadores[0].posX] = s.Jogadores[0].Element
-	s.mapa[s.Jogadores[1].posY][s.Jogadores[1].posX] = s.Jogadores[1].Element
-	s.mapa[s.Jogadores[2].posY][s.Jogadores[2].posX] = s.Jogadores[2].Element
+	// Coloca o personagem na Posição inicial
+	// s.mapa[s.Jogadores[0].PosY][s.Jogadores[0].PosX] = s.Jogadores[0].Element
+	// s.mapa[s.Jogadores[1].PosY][s.Jogadores[1].PosX] = s.Jogadores[1].Element
+	// s.mapa[s.Jogadores[2].PosY][s.Jogadores[2].PosX] = s.Jogadores[2].Element
 
 	if err := scanner.Err(); err != nil {
 		panic(err)
@@ -257,12 +258,13 @@ func (s *Servidor) carregarMapa(nomeArquivo string) {
 	s.mapa_Inicializado = true
 }
 
-func (s *Servidor) updatePos(novaPosX int, novaPosY int, elem Elemento, j *Jogador) { // Cliente chama essa função para atualizar a posição do elemento
+func (s *Servidor) updatePos(novaPosX int, novaPosY int, elem Elemento, j *Jogador) { // Cliente chama essa função para atualizar a Posição do elemento
+	fmt.Println("Jogador com ID = ", j.ID, "updatedPos", novaPosX, novaPosY)
 	if novaPosY >= 0 && novaPosY < len(s.mapa) && novaPosX >= 0 && novaPosX < len(s.mapa[novaPosY]) && s.mapa[novaPosY][novaPosX].Tangivel == false {
-		s.mapa[j.posY][j.posX] = s.ultimoElementoSobPersonagem     // Restaura o elemento anterior
+		s.mapa[j.PosY][j.PosX] = s.ultimoElementoSobPersonagem     // Restaura o elemento anterior
 		s.ultimoElementoSobPersonagem = s.mapa[novaPosY][novaPosX] // Atualiza o elemento sob o personagem
-		j.posX, j.posY = novaPosX, novaPosY                        // Move o personagem
-		s.mapa[j.posY][j.posX] = j.Element                         // Coloca o personagem na nova posição
+		j.PosX, j.PosY = novaPosX, novaPosY                        // Move o personagem
+		s.mapa[j.PosY][j.PosX] = j.Element                         // Coloca o personagem na nova Posição
 	}
 	fmt.Println("Tentei mover para", novaPosX, novaPosY)
 }
